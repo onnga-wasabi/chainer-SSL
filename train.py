@@ -9,6 +9,7 @@ from utils import (
     load_row_cifar10,
     pickup_sample,
 )
+from evaluator import KNNEvaluator
 
 
 def parse():
@@ -29,7 +30,10 @@ def main():
         chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
     train = chainer.datasets.TupleDataset(tx, ty)
+    val = chainer.datasets.TupleDataset(vx, vy)
+    refs = chainer.datasets.TupleDataset(refs_points[0], refs_points[1])
     train_iter = chainer.iterators.SerialIterator(train, args.batch)
+    val_iter = chainer.iterators.SerialIterator(val, args.batch, repeat=False, shuffle=False)
     optimizer = chainer.optimizers.NesterovAG(lr=0.1)
     optimizer.setup(model)
     if args.updater == 'iyatomi':
@@ -39,11 +43,12 @@ def main():
 
     trainer = chainer.training.Trainer(updater, stop_trigger=(args.epoch, 'epoch'))
     trainer.extend(chainer.training.extensions.ExponentialShift('lr', 0.1), trigger=(30, 'epoch'))
+    trainer.extend(KNNEvaluator(val_iter, model, refs, args.batch, device=args.gpu))
     trainer.extend(chainer.training.extensions.LogReport())
     trainer.extend(chainer.training.extensions.PrintReport([
         'epoch',
         'main/metric',
-        'validation/main/loss'
+        'validation/main/accuracy'
     ]))
     trainer.extend(chainer.training.extensions.ProgressBar())
     trainer.run()
