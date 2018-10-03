@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 
 result
+cifar-10-batches-py

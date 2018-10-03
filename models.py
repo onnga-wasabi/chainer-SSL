@@ -56,3 +56,39 @@ class Decoder(chainer.Chain):
         h = F.unpooling_2d(F.relu(self.deconv3(h)), 2, cover_all=False)
         h = F.unpooling_2d(F.relu(self.deconv4(h)), 2, cover_all=False)
         return h
+
+
+class Cifar10(chainer.Chain):
+    def __init__(self):
+        super(Cifar10, self).__init__()
+        w = chainer.initializers.HeNormal()
+        with self.init_scope():
+            self.cv1_1 = L.Convolution2D(None, 192, 5, 1, 1, initialW=w)
+            self.bn1_1 = L.BatchNormalization(192)
+            self.cv1_2 = L.Convolution2D(None, 160, 1, 1, initialW=w)
+            self.bn1_2 = L.BatchNormalization(160)
+            self.cv1_3 = L.Convolution2D(None, 96, 1, 1, initialW=w)
+            self.bn1_3 = L.BatchNormalization(96)
+            self.cv2_1 = L.Convolution2D(None, 96, 5, 1, 1, initialW=w)
+            self.bn2_1 = L.BatchNormalization(96)
+            self.cv2_2 = L.Convolution2D(None, 192, 1, 1, initialW=w)
+            self.bn2_2 = L.BatchNormalization(192)
+            self.cv2_3 = L.Convolution2D(None, 192, 1, 1, initialW=w)
+            self.bn2_3 = L.BatchNormalization(192)
+            self.cv3_1 = L.Convolution2D(None, 192, 3, 1, 1, initialW=w)
+            self.bn3_1 = L.BatchNormalization(192)
+            self.cv3_2 = L.Convolution2D(None, 192, 1, 1, initialW=w)
+            self.bn3_2 = L.BatchNormalization(192)
+
+    def __call__(self, x):
+        h = self.bn1_1(F.relu(self.cv1_1(x)))
+        h = self.bn1_2(F.relu(self.cv1_2(h)))
+        h = self.bn1_3(F.relu(self.cv1_3(h)))
+        h = F.max_pooling_2d(h, 3, stride=2, pad=1)
+        h = self.bn2_1(F.relu(self.cv2_1(h)))
+        h = self.bn2_2(F.relu(self.cv2_2(h)))
+        h = self.bn2_3(F.relu(self.cv2_3(h)))
+        h = F.max_pooling_2d(h, 3, stride=2, pad=1)
+        h = self.bn3_1(F.relu(self.cv3_1(h)))
+        h = self.bn3_2(F.relu(self.cv3_2(h)))
+        return F.average_pooling_2d(h, 7)
