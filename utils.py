@@ -41,7 +41,7 @@ def load_row_cifar10():
     return train_x, train_y, val_x, val_y
 
 
-def pickup_sample(images, labels, num=10):
+def pickup_sample(images, labels, num=400):
 
     classes = [list(np.where(labels == label)[0]) for label in sorted(set(labels))]
     sample_idxs = [random.sample(classes[i], num) for i in range(len(classes))]

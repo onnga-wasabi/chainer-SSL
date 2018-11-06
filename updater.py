@@ -26,8 +26,26 @@ class IyatomiMetricStandardUpdater(MetricStandardUpdater):
         metric = 0
         for embedding, label in zip(embeddings, labels):
             eculideans = F.sum((embeddings - F.broadcast_to(embedding, (batchsize, shape[1])))**2, axis=1)
-            ratios = F.softmax(F.expand_dims(-eculideans, axis=0))[0]
+            ratios = -F.log_softmax(F.expand_dims(-eculideans, axis=0))[0]
             metric += F.sum(ratios[xp.where(labels == label)])
+        chainer.report({'metric': metric}, model)
+        return metric
+
+
+class Iyatomi2MetricStandardUpdater(MetricStandardUpdater):
+
+    def metric(self, model, images, labels):
+        batchsize = len(images)
+        embeddings = model(images)
+
+        embeddings = F.reshape(embeddings, ((batchsize, -1)))
+        shape = embeddings.shape
+        metric = 0
+        for embedding in embeddings:
+            eculideans = F.sum((embeddings - F.broadcast_to(embedding, (batchsize, shape[1])))**2, axis=1)
+            ratios = -F.log_softmax(F.expand_dims(-eculideans, axis=0))[0]
+            weights = F.softmax(F.expand_dims(-eculideans, axis=0))[0]
+            metric += F.sum(ratios * weights)
         chainer.report({'metric': metric}, model)
         return metric
 

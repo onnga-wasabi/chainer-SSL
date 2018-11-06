@@ -1,7 +1,7 @@
 import argparse
 import chainer
 from updater import (
-    IyatomiMetricStandardUpdater,
+    Iyatomi2MetricStandardUpdater,
     HofferMetricStandardUpdater,
 )
 from models import Cifar10
@@ -34,15 +34,16 @@ def main():
     refs = chainer.datasets.TupleDataset(refs_points[0], refs_points[1])
     train_iter = chainer.iterators.SerialIterator(train, args.batch)
     val_iter = chainer.iterators.SerialIterator(val, args.batch, repeat=False, shuffle=False)
-    optimizer = chainer.optimizers.NesterovAG(lr=0.1)
+    # optimizer = chainer.optimizers.NesterovAG(lr=0.1)
+    optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
     if args.updater == 'iyatomi':
-        updater = IyatomiMetricStandardUpdater(train_iter, optimizer, device=args.gpu)
+        updater = Iyatomi2MetricStandardUpdater(train_iter, optimizer, device=args.gpu)
     elif args.updater == 'hoffer':
         updater = HofferMetricStandardUpdater(refs_points, train_iter, optimizer, device=args.gpu)
 
     trainer = chainer.training.Trainer(updater, stop_trigger=(args.epoch, 'epoch'))
-    trainer.extend(chainer.training.extensions.ExponentialShift('lr', 0.1), trigger=(30, 'epoch'))
+    # trainer.extend(chainer.training.extensions.ExponentialShift('lr', 0.1), trigger=(30, 'epoch'))
     trainer.extend(KNNEvaluator(val_iter, model, refs, args.batch, device=args.gpu))
     trainer.extend(chainer.training.extensions.LogReport())
     trainer.extend(chainer.training.extensions.PrintReport([
@@ -52,6 +53,7 @@ def main():
     ]))
     trainer.extend(chainer.training.extensions.ProgressBar())
     trainer.run()
+    chainer.serializers.save_npz('hoffer.npz', model)
 
 
 if __name__ == '__main__':
